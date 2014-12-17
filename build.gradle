@@ -1,3 +1,5 @@
+// File build using http://www.nodeclipse.org/projects/gradle/
+
 buildscript {
     repositories {
         mavenCentral()
@@ -132,7 +134,7 @@ void moveAndRenameAar(File file){
     def baseFilename = file.name.lastIndexOf('.').with {it != -1 ? file.name[0..<it] : file.name}
 
     // directory excluding the classes.jar
-    copy{
+    copy {
         from zipTree(file)
         exclude 'classes.jar'
         into 'libs/'+baseFilename
@@ -141,12 +143,41 @@ void moveAndRenameAar(File file){
     // Copies the classes.jar into the libs directory of the exploded AAR.
     // In Eclipse you can then import this exploded ar as an Android project
     // and then reference not only the classes but also the android resources :D 
-    copy{
+    copy {
         from zipTree(file)
         include 'classes.jar'
         into 'libs/' + baseFilename +'/libs'
         rename { String fileName ->
             fileName.replace('classes.jar', baseFilename + '.jar')
         }
+    }
+}
+
+
+// To create symlinks for AndroidManifest.xml and res folder
+task createLink() << {
+	File androidManifestTarget = file(new File(project.projectDir, 'src/main/AndroidManifest.xml'))
+	File androidManifestLink = file(new File(project.projectDir, 'AndroidManifest.xml'))
+	createOSIndependentLink(androidManifestLink, androidManifestTarget)
+	
+	File resTarget = file(new File(project.projectDir, 'src/main/res/'))
+	File resLink = file(new File(project.projectDir, 'res/'))
+	createOSIndependentLink(resLink, resTarget)
+}
+
+import org.apache.tools.ant.taskdefs.condition.Os
+void createOSIndependentLink(File link, File target){
+	println "createOSIndependentLink: $link -> $target"
+	if (link.exists()) {
+		println "createOSIndependentLink: $link already exists"
+	} else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+		if (target.isDirectory()) {
+			exec { commandLine 'cmd', '/c', 'mklink', '/D', link, target }
+        } else {
+			exec { commandLine 'cmd', '/c', 'mklink', link, target }
+		}
+    }
+    else {
+        exec { commandLine 'ln', '-s', link, target }
     }
 }
