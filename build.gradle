@@ -123,7 +123,7 @@ task copyJarDependencies(type: Copy) {
 
 void moveJarIntoLibs(File file){
     println 'Added jar ' + file
-        copy{
+        copy {
             from file
             into 'libs'
         }
@@ -153,9 +153,8 @@ void moveAndRenameAar(File file){
     }
 }
 
-
 // To create symlinks for AndroidManifest.xml and res folder
-task createLink() << {
+task createLink() {
 	File androidManifestTarget = file(new File(project.projectDir, 'src/main/AndroidManifest.xml'))
 	File androidManifestLink = file(new File(project.projectDir, 'AndroidManifest.xml'))
 	createOSIndependentLink(androidManifestLink, androidManifestTarget)

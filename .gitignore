@@ -1,8 +1,6 @@
 libs/**
 
 
-
-
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -90,8 +88,8 @@ tmp/
 local.properties
 .settings/
 .loadpath
-.classpath
-.project
+//.classpath
+//.project
 
 # External tool builders
 .externalToolBuilders/
