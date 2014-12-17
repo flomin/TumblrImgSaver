@@ -1,0 +1,6 @@
+http://appicontemplate.com/android#
+
+How do I use it?
+
+You’ll need Photoshop CS3 or later. Open the PSD file in Photoshop. Find and right click the layer called ‘Edit me & save' and hit ’Edit Contents’. This opens the Icon.psb file - create your artwork in this canvas. After saving the Icon.psb, the multiple sizes in the Main PSD file should be automatically rendered. Use the Photoshop Actions bundled with the resource to export your icon files. Here’s a video walkthrough: http://vimeo.com/69581422#at=0
+

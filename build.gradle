@@ -1,0 +1,152 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.0.0'
+
+        // https://github.com/evant/gradle-retrolambda
+		classpath 'me.tatarka:gradle-retrolambda:2.4.1'
+        
+    	// https://github.com/JakeWharton/sdk-manager-plugin
+    	// classpath 'com.jakewharton.sdkmanager:gradle-plugin:0.10.+'
+        // https://github.com/novoda/gradle-android-command-plugin
+        classpath 'com.novoda:gradle-android-command-plugin:1.3.0'
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'retrolambda'
+
+// https://github.com/novoda/gradle-android-command-plugin
+// run gradle tasks and see "ADB command tasks" section
+apply plugin: 'android-command'
+
+apply plugin: 'eclipse'
+
+repositories {
+	mavenCentral()
+	jcenter()
+	// Work around https://code.google.com/p/android/issues/detail?id=69270.
+	def androidHome = System.getenv("ANDROID_HOME")
+	maven {
+		url "$androidHome/extras/android/m2repository/"
+	}
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: '*.jar')
+
+	
+	// Note: these libraries require the "Google Repository" and "Android Repository" to be installed via the SDK manager.
+    // Google Play Services
+    //compile 'com.google.android.gms:play-services:6.1.71'
+
+    // Support Libraries
+    compile 'com.android.support:appcompat-v7:21.0.3'
+    compile 'com.android.support:cardview-v7:21.0.0'
+    compile 'com.android.support:gridlayout-v7:21.0.0'
+    compile 'com.android.support:leanback-v17:21.0.0'
+    compile 'com.android.support:mediarouter-v7:21.0.0'
+    compile 'com.android.support:palette-v7:21.0.0'
+    compile 'com.android.support:recyclerview-v7:21.0.0'
+    compile 'com.android.support:support-annotations:21.0.0'
+    compile 'com.android.support:support-v13:21.0.0'
+    compile 'com.android.support:support-v4:21.0.3'
+	
+	compile "org.apache.commons:commons-collections4:4.0"
+	compile "org.jsoup:jsoup:1.8.1"
+    
+    // to use appcomat: in SDK Manager install/update Extras / Android Support Repository
+    // or from command line
+    //	android list sdk
+    //	android update sdk --no-ui --filter <number>
+    //compile 'com.android.support:appcompat-v7:19.+'
+
+    // for multi-module project build (needs `settings.gradle`): 
+    // reference needed modules or App under test (for Eclipse Android Test project)
+    //compile project(':Module')
+
+    //androidTestCompile 'com.jayway.android.robotium:robotium-solo:4.3.1'
+    
+    // http://blog.futurice.com/android_unit_testing_in_ides_and_ci_environments
+    //androidTestCompile 'org.robolectric:robolectric:2.+'
+    //androidTestCompile 'junit:junit:4.+'
+}
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.2"
+
+    defaultConfig {
+        minSdkVersion 17
+        targetSdkVersion 21
+    }
+	lintOptions {
+        //checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+	packagingOptions { 
+        exclude 'META-INF/LICENSE.txt' 
+        exclude 'META-INF/NOTICE.txt' 
+    } 
+}
+
+// To copy gradle dependencies to the libs folder
+// http://stackoverflow.com/questions/16709305/add-dependencies-via-gradle-to-eclipse-in-android-project
+task copyJarDependencies(type: Copy) {
+    description = 'Used for Eclipse. Copies all dependencies to the libs directory. If there are any AAR files it will extract the classes.jar and rename it the same as the AAR file but with a .jar on the end.'
+	File libDir = file(new File(project.projectDir, '/libs'))
+    println libDir
+    println 'Adding dependencies from compile configuration'
+    configurations.compile.filter {it.name.endsWith 'jar'}.each { File file -> moveJarIntoLibs(file)}
+    println 'Adding dependencies from releaseCompile configuration'
+    configurations.releaseCompile.filter {it.name.endsWith 'jar'}.each { File file -> moveJarIntoLibs(file)}
+    println 'Adding dependencies from debugCompile configuration'
+    configurations.debugCompile.filter {it.name.endsWith 'jar'}.each { File file -> moveJarIntoLibs(file)}
+    println 'Adding dependencies from androidTestCompile configuration'
+    configurations.androidTestCompile.filter {it.name.endsWith 'jar'}.each { File file -> moveJarIntoLibs(file)}
+    println 'Extracting dependencies from compile configuration'
+    configurations.compile.filter {it.name.endsWith 'aar'}.each { File file -> moveAndRenameAar(file) }
+    println 'Extracting dependencies from releaseCompile configuration'
+    configurations.releaseCompile.filter {it.name.endsWith 'aar'}.each { File file -> moveAndRenameAar(file) }
+    println 'Extracting dependencies from debugCompile configuration'
+    configurations.debugCompile.filter {it.name.endsWith 'aar'}.each { File file -> moveAndRenameAar(file) }
+    println 'Extracting AAR dependencies from androidTestCompile configuration'
+    configurations.androidTestCompile.filter {it.name.endsWith 'aar'}.each { File file -> moveAndRenameAar(file) }
+}
+
+void moveJarIntoLibs(File file){
+    println 'Added jar ' + file
+        copy{
+            from file
+            into 'libs'
+        }
+}
+
+void moveAndRenameAar(File file){
+    println 'Added aar ' + file
+    def baseFilename = file.name.lastIndexOf('.').with {it != -1 ? file.name[0..<it] : file.name}
+
+    // directory excluding the classes.jar
+    copy{
+        from zipTree(file)
+        exclude 'classes.jar'
+        into 'libs/'+baseFilename
+    }
+
+    // Copies the classes.jar into the libs directory of the exploded AAR.
+    // In Eclipse you can then import this exploded ar as an Android project
+    // and then reference not only the classes but also the android resources :D 
+    copy{
+        from zipTree(file)
+        include 'classes.jar'
+        into 'libs/' + baseFilename +'/libs'
+        rename { String fileName ->
+            fileName.replace('classes.jar', baseFilename + '.jar')
+        }
+    }
+}
